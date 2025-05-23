@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.vscode/ # If you use VS Code
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Flask-specific
+instance/
+.flaskenv
+
+# Database
+*.db # This will ignore your blog.db file
+*.sqlite
+*.sqlite3
+
+# Uploaded files (if we add image uploads later)
+uploads/
+
+# Operating System files
+.DS_Store # macOS
+Thumbs.db # Windows

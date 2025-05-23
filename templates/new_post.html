@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>New Post - Simple Blog Site</title>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+        <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container">
+            <nav>
+                <ul>
+                    <li><a href="{{ url_for('index') }}">Home</a></li>
+                    <li><a href="{{ url_for('new_post') }}">New Post</a></li>
+                </ul>
+            </nav>
+            <div class="main-content">
+                <h1>Create a New Blog Post</h1>
+                <form method="POST" class="new-post-form">
+                    <div>
+                        <label for="title">Title:</label><br>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+                    <br>
+                    <div>
+                        <label for="author">Author (Optional):</label><br>
+                        <input type="text" id="author" name="author">
+                    </div>
+                    <br>
+                    <div>
+                        <label for="content">Content:</label><br>
+                        <textarea id="content" name="content" rows="10" cols="80" required></textarea>
+                    </div>
+                    <br>
+                    <button type="submit">Publish</button>
+                </form>
+                <p><a href="{{ url_for('index') }}">Back to Homepage</a></p>
+            </div>
+        </div>
+    </body>
+</html>

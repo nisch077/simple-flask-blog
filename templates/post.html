@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{{ post.title }} - Simple Blog Site</title>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+        <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container">
+            <nav>
+                <ul>
+                    <li><a href="{{ url_for('index') }}">Home</a></li>
+                    <li><a href="{{ url_for('new_post') }}">New Post</a></li>
+                </ul>
+            </nav>
+            <div class="main-content">
+                <h1>{{ post.title }}</h1>
+                <p class="meta">Published on: {{ post.date_posted.strftime('%B %d, %Y at %H:%M') }} by {{ post.author }}</p>
+                <hr>
+                <div>
+                    {{ post.content }}
+                </div>
+                <p><a href="{{ url_for('index') }}">Back to Homepage</a></p>
+            </div>
+        </div>
+    </body>
+</html>
