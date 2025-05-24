@@ -17,6 +17,9 @@
                 <h1>{{ post.title }}</h1>
                 <p class="meta">Published on: {{ post.date_posted.strftime('%B %d, %Y at %H:%M') }} by {{ post.author }}</p>
                 <hr>
+                {% if post.main_image %}
+                    <img src="{{ url_for('uploaded_file', filename=post.id|string + '/' + post.main_image) }}" alt="{{ post.title }}" style="max-width: 100%; height: auto; margin-bottom: 20px; border-radius: 5px;">
+                {% endif %}
                 <div>
                     {{ post.content }}
                 </div>

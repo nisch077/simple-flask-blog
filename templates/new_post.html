@@ -15,7 +15,7 @@
             </nav>
             <div class="main-content">
                 <h1>Create a New Blog Post</h1>
-                <form method="POST" class="new-post-form">
+                <form method="POST" class="new-post-form" enctype="multipart/form-data">
                     <div>
                         <label for="title">Title:</label><br>
                         <input type="text" id="title" name="title" required>
@@ -24,6 +24,11 @@
                     <div>
                         <label for="author">Author (Optional):</label><br>
                         <input type="text" id="author" name="author">
+                    </div>
+                    <br>
+                    <div>
+                        <label for="main_image">Main Image:</label><br>
+                        <input type="file" id="main_image" name="main_image" accept="image/*">
                     </div>
                     <br>
                     <div>
