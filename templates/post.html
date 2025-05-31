@@ -21,7 +21,7 @@
                     <img src="{{ url_for('uploaded_file', filename=post.id|string + '/' + post.main_image) }}" alt="{{ post.title }}" style="max-width: 100%; height: auto; margin-bottom: 20px; border-radius: 5px;">
                 {% endif %}
                 <div>
-                    {{ post.content }}
+                    {{ rendered_content|safe }}
                 </div>
                 <p><a href="{{ url_for('index') }}">Back to Homepage</a></p>
             </div>

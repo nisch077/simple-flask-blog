@@ -27,13 +27,19 @@
                     </div>
                     <br>
                     <div>
-                        <label for="main_image">Main Image:</label><br>
+                        <label for="main_image">Featured Image (Optional):</label><br>
                         <input type="file" id="main_image" name="main_image" accept="image/*">
+                        <small>This image will appear at the top of the post and as a thumbnail.</small>
                     </div>
                     <br>
                     <div>
-                        <label for="content">Content:</label><br>
-                        <textarea id="content" name="content" rows="10" cols="80" required></textarea>
+                        <label for="content">Content (Markdown supported):</label><br>
+                        <textarea id="content" name="content" rows="15" cols="80" required></textarea>
+                        <small>
+                            Use Markdown for formatting. For embedded images, use: <br>
+                            `![Alt Text](your_image_name.jpg)`<br>
+                            (Make sure 'your_image_name.jpg' is uploaded with this post!)
+                        </small>
                     </div>
                     <br>
                     <button type="submit">Publish</button>

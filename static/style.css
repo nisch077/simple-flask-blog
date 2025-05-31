@@ -198,3 +198,18 @@ nav a:hover {
 body {
     animation: fadeIn 0.5s ease-in-out;
 }
+
+/* Styling for images embedded within post content */
+.main-content img {
+    display: block; /* Forces the image to take up its own line */
+    max-width: 100%; /* Ensures images don't overflow their container */
+    height: auto;    /* Maintains aspect ratio */
+    margin: 15px auto; /* Adds vertical spacing above/below, and centers if narrower than 100% */
+    border-radius: 5px; /* Consistent rounded corners */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for embedded images */
+}
+
+/* You might want to adjust the styling for the "featured image" on the post page specifically */
+.main-content > img:first-child {
+    margin-top: 0; /* Remove top margin if it's the very first element in main-content */
+}
