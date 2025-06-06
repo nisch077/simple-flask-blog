@@ -4,6 +4,7 @@ from datetime import datetime # Import datetime for timestamps
 import os # Import os for path manipulation and directory creation
 from werkzeug.utils import secure_filename # For securing filenames
 import markdown # Import the markdown library
+import shutil # Import shutil for deleting directories
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db' # SQLite database file named blog.db
@@ -61,6 +62,10 @@ def process_markdown_for_images(content_markdown, post_id):
         # If the image_path is just a filename (e.g., 'my_pic.jpg')
         # We assume it's an embedded image meant for this post's folder
         if not image_path.startswith('/') and not image_path.startswith('http'):
+            # This is the original logic. For editing, if an image is removed
+            # or the content changed, this simply resolves the path based on
+            # what's written in the markdown. It doesn't handle deletion
+            # of unreferenced images on the server.
             new_image_path = url_for('uploaded_file', filename=f"{post_id}/{image_path}")
         else:
             # If it's already an absolute path or external URL, leave it as is
@@ -150,6 +155,79 @@ def new_post():
 
     return render_template('new_post.html')
 
+# --- New Route for Editing Posts ---
+@app.route('/post/<int:post_id>/edit', methods=['GET', 'POST'])
+def edit_post(post_id):
+    post = db.session.query(Post).get_or_404(post_id)
+
+    if request.method == 'POST':
+        post.title = request.form['title']
+        post.content = request.form['content']
+        post.author = request.form.get('author', 'Anonymous')
+
+        # Handle main_image update
+        if 'main_image' in request.files:
+            file = request.files['main_image']
+            if file.filename != '': # Check if a new file was actually selected
+                if file and allowed_file(file.filename):
+                    # Define the post's dedicated image folder
+                    post_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(post.id))
+                    os.makedirs(post_folder, exist_ok=True) # Ensure folder exists
+
+                    # Delete old main image if it exists
+                    if post.main_image:
+                        old_image_path = os.path.join(post_folder, post.main_image)
+                        if os.path.exists(old_image_path):
+                            os.remove(old_image_path)
+                            print(f"Deleted old main image: {old_image_path}")
+
+                    filename = secure_filename(file.filename)
+                    file_path = os.path.join(post_folder, filename)
+                    file.save(file_path)
+                    post.main_image = filename # Update with new filename
+                else:
+                    flash('Invalid image file type for main image.', 'warning')
+            # Else, if filename is empty, user didn't select a new file, so keep existing post.main_image
+
+        # Handle removing the main image (e.g., if a checkbox was added for 'delete_main_image')
+        # For simplicity, we're not adding a "delete main image" checkbox right now.
+        # If you want this, you'd add <input type="checkbox" name="delete_main_image">
+        # and handle it here:
+        # if 'delete_main_image' in request.form and request.form['delete_main_image'] == 'on':
+        #    if post.main_image:
+        #        old_image_path = os.path.join(post_folder, post.main_image)
+        #        if os.path.exists(old_image_path):
+        #            os.remove(old_image_path)
+        #        post.main_image = None
+
+        db.session.commit()
+        flash('Your post has been updated!', 'success')
+        return redirect(url_for('post', post_id=post.id))
+
+    # GET request: render the edit form with existing post data
+    return render_template('edit_post.html', post=post)
+
+# --- New Route for Deleting Posts ---
+@app.route('/post/<int:post_id>/delete', methods=['POST']) # Use POST method for deletion for security
+def delete_post(post_id):
+    post = db.session.query(Post).get_or_404(post_id)
+
+    # Delete associated image folder and its contents
+    post_folder_path = os.path.join(app.config['UPLOAD_FOLDER'], str(post.id))
+    if os.path.exists(post_folder_path):
+        try:
+            shutil.rmtree(post_folder_path) # Recursively delete the directory
+            print(f"Deleted post image folder: {post_folder_path}")
+        except Exception as e:
+            print(f"Error deleting post image folder {post_folder_path}: {e}")
+            flash(f"Error deleting associated images: {e}", 'danger')
+
+    # Delete post from database
+    db.session.delete(post)
+    db.session.commit()
+    flash('Your post has been deleted!', 'success')
+    return redirect(url_for('index'))           
+
 # Route to serve uploaded files
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
@@ -157,6 +235,7 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
+    app.config['SECRET_KEY'] = 'your_super_secret_key_for_flash_messages' # Ensure this is present
     with app.app_context():
         db.create_all()
         # Optional: Add some initial data only if the database is empty (important for existing dbs)

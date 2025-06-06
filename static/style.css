@@ -213,3 +213,53 @@ body {
 .main-content > img:first-child {
     margin-top: 0; /* Remove top margin if it's the very first element in main-content */
 }
+
+/* Add to static/style.css */
+.post-actions {
+    margin-top: 30px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    text-align: right; /* Align buttons to the right */
+}
+
+.button {
+    display: inline-block;
+    padding: 10px 18px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+    border: none; /* Remove default button border */
+    font-size: 0.95em;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.edit-button {
+    background-color: #f39c12; /* Orange color for edit */
+    color: white;
+}
+
+.edit-button:hover {
+    background-color: #e67e22;
+    transform: translateY(-1px);
+}
+
+.delete-button {
+    background-color: #e74c3c; /* Red color for delete */
+    color: white;
+}
+
+.delete-button:hover {
+    background-color: #c0392b;
+    transform: translateY(-1px);
+}
+
+/* Specific styling for the featured image (if you want it different from embedded) */
+.post-featured-image {
+    width: 100%; /* Make featured image span full width */
+    height: 300px; /* Example fixed height for featured image */
+    object-fit: cover; /* Ensures image covers area without distortion */
+    margin-bottom: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}

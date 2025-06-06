@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Edit Post - {{ post.title }}</title>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+        <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container">
+            <nav>
+                <ul>
+                    <li><a href="{{ url_for('index') }}">Home</a></li>
+                    <li><a href="{{ url_for('new_post') }}">New Post</a></li>
+                </ul>
+            </nav>
+            <div class="main-content">
+                <h1>Edit Blog Post</h1>
+                <form method="POST" class="new-post-form" enctype="multipart/form-data">
+                    <div>
+                        <label for="title">Title:</label><br>
+                        <input type="text" id="title" name="title" value="{{ post.title }}" required>
+                    </div>
+                    <br>
+                    <div>
+                        <label for="author">Author (Optional):</label><br>
+                        <input type="text" id="author" name="author" value="{{ post.author }}">
+                    </div>
+                    <br>
+                    <div>
+                        <label for="main_image">Featured Image:</label><br>
+                        {% if post.main_image %}
+                            <img src="{{ url_for('uploaded_file', filename=post.id|string + '/' + post.main_image) }}" alt="Current Featured Image" style="max-width: 200px; height: auto; margin-bottom: 10px; display: block;">
+                            <p><small>Current image: {{ post.main_image }}</small></p>
+                        {% else %}
+                            <p><small>No featured image currently set.</small></p>
+                        {% endif %}
+                        <input type="file" id="main_image" name="main_image" accept="image/*">
+                        <small>Select a new image to replace the current one, or leave blank to keep. (To remove, you'd need a separate "Remove Image" checkbox)</small>
+                    </div>
+                    <br>
+                    <div>
+                        <label for="content">Content (Markdown supported):</label><br>
+                        <textarea id="content" name="content" rows="15" cols="80" required>{{ post.content }}</textarea>
+                        <small>
+                            Use Markdown for formatting. For embedded images, use: <br>
+                            `![Alt Text](your_image_name.jpg)`<br>
+                            (Make sure 'your_image_name.jpg' is uploaded with this post!)
+                        </small>
+                    </div>
+                    <br>
+                    <button type="submit">Update Post</button>
+                </form>
+                <p><a href="{{ url_for('post', post_id=post.id) }}">Back to Post</a></p>
+            </div>
+        </div>
+    </body>
+</html>
