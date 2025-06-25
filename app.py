@@ -5,19 +5,45 @@ import os # Import os for path manipulation and directory creation
 from werkzeug.utils import secure_filename # For securing filenames
 import markdown # Import the markdown library
 import shutil # Import shutil for deleting directories
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user # New Flask-Login imports
+from werkzeug.security import generate_password_hash, check_password_hash # New password hashing imports
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db' # SQLite database file named blog.db
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Disable tracking modifications for performance
+app.config['SECRET_KEY'] = 'your_super_secret_key_for_flash_messages' # MAKE SURE THIS IS A LONG, RANDOM, AND SECRET STRING IN PRODUCTION
 
 # --- Configuration for file uploads ---
 UPLOAD_FOLDER = 'uploads' # The main folder for all uploads
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'} # Allowed image extensions
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['SECRET_KEY'] = 'your_super_secret_key_for_flash_messages' # REMEMBER TO CHANGE THIS IN PRODUCTION
 # --- End upload config ---
 
 db = SQLAlchemy(app)
+login_manager = LoginManager() # Initialize Flask-Login
+login_manager.init_app(app) # Connect to the Flask app
+login_manager.login_view = 'login' # Define the view Flask-Login should redirect to for login
+
+# --- User Model for Authentication ---
+class User(db.Model, UserMixin): # Inherit from UserMixin
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(20), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False) # Store hashed password
+    is_admin = db.Column(db.Boolean, default=False) # Example: for admin users
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return f"User('{self.username}')"
+
+# Flask-Login required user loader function
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 # Define the Post model (updated to include image_filename)
 class Post(db.Model):
@@ -115,12 +141,63 @@ def post(post_id):
 
     return render_template('post.html', post=post, rendered_content=rendered_content_html) # Pass rendered HTML
 
+# --- New User Registration Route ---
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated: # If user is already logged in, redirect
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            flash('Username already exists. Please choose a different one.', 'danger')
+            return redirect(url_for('register')) # <<< ADD THIS LINE >>>
+        else:
+            new_user = User(username=username)
+            new_user.set_password(password) # Hash the password
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Registration successful! You can now log in.', 'success')
+            return redirect(url_for('login'))
+        
+    return render_template('register.html')
+
+# --- New User Login Route ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated: # If user is already logged in, redirect
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            login_user(user) # Log the user in
+            flash('Logged in successfully!', 'success')
+            next_page = request.args.get('next') # Redirect to original page if login was required
+            return redirect(next_page or url_for('index'))
+        else:
+            flash('Login Unsuccessful. Please check username and password.', 'danger')
+    return render_template('login.html')
+
+# --- New User Logout Route ---
+@app.route('/logout')
+@login_required # User must be logged in to log out (prevents anonymous logout links)
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('index'))
+
+# --- Protected Routes for Blog Management ---
 @app.route('/new_post', methods=['GET', 'POST'])
+@login_required # Only logged-in users can access this
 def new_post():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content'] # This will now be Markdown
-        author = request.form.get('author', 'Anonymous')
+        # Set author to current logged-in user's username
+        author = current_user.username
         main_image_filename = None # Initialize image filename to None
 
         # Create the new Post object first, so we can get its ID for the folder name
@@ -157,13 +234,19 @@ def new_post():
 
 # --- New Route for Editing Posts ---
 @app.route('/post/<int:post_id>/edit', methods=['GET', 'POST'])
+@login_required # Only logged-in users can access this
 def edit_post(post_id):
     post = db.session.query(Post).get_or_404(post_id)
+
+    # Optional: Add authorization to only allow the original author to edit
+    if post.author != current_user.username and not current_user.is_admin:
+        flash('You are not authorized to edit this post.', 'danger')
+        return redirect(url_for('post', post_id=post.id))
 
     if request.method == 'POST':
         post.title = request.form['title']
         post.content = request.form['content']
-        post.author = request.form.get('author', 'Anonymous')
+        post.author = request.form.get('author', current_user.username) # Default to logged-in user if not provided
 
         # Handle main_image update
         if 'main_image' in request.files:
@@ -212,6 +295,11 @@ def edit_post(post_id):
 def delete_post(post_id):
     post = db.session.query(Post).get_or_404(post_id)
 
+    # Optional: Add authorization to only allow the original author to delete
+    if post.author != current_user.username and not current_user.is_admin:
+        flash('You are not authorized to delete this post.', 'danger')
+        return redirect(url_for('post', post_id=post.id))
+
     # Delete associated image folder and its contents
     post_folder_path = os.path.join(app.config['UPLOAD_FOLDER'], str(post.id))
     if os.path.exists(post_folder_path):
@@ -226,7 +314,7 @@ def delete_post(post_id):
     db.session.delete(post)
     db.session.commit()
     flash('Your post has been deleted!', 'success')
-    return redirect(url_for('index'))           
+    return redirect(url_for('index'))          
 
 # Route to serve uploaded files
 @app.route('/uploads/<path:filename>')
@@ -235,16 +323,17 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
-    app.config['SECRET_KEY'] = 'your_super_secret_key_for_flash_messages' # Ensure this is present
+    # Initial setup for a default user if database is empty
     with app.app_context():
         db.create_all()
-        # Optional: Add some initial data only if the database is empty (important for existing dbs)
-        # Check if the 'main_image' column exists before trying to access it if your db is old
-        # if not db.inspect(Post).has_column('main_image'):
-        #     print("Adding 'main_image' column to Post model...")
-        #     # This would require manual migration for existing data or recreate db
-        #     pass # For now, just a print, assuming db.create_all handles new setup
-
+        # Create an initial user if no users exist
+        if not User.query.first():
+            admin_user = User(username='admin', is_admin=True)
+            admin_user.set_password('p@ssw0rd') # CHANGE THIS PASSWORD IN PRODUCTION
+            db.session.add(admin_user)
+            db.session.commit()
+            print("Created default admin user: 'admin' with password 'password'")
+        
         if not Post.query.first():
             initial_posts = [
                 Post(title='Getting Started with Flask Blog', content='Welcome to my new blog! This is my first post, now powered by SQLite.', author='Admin'),
